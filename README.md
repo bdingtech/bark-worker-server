@@ -14,9 +14,9 @@ Bark Worker Server 是一个 [Bark-Server](https://github.com/Finb/bark-server) 
 
 ### EdgeOne
 
-**EdgeOne 边缘节点目前无法直接连接 APNs 服务，需通过 Node Functions 反代，必须配置 URL_PREFIX**
+本 fork 的 EdgeOne 路径改为边缘函数直接请求 APNs，不再构建 Node Functions 反代。这是实验实现：仓库里的测试和构建不能证明 EdgeOne 出站 HTTP/2 或 APNs 送达已经可用。部署、环境变量迁移和诊断见 [docs/edgeone.md](docs/edgeone.md)。
 
-[部署教程](https://github.com/sylingd/bark-worker-server/wiki/EdgeOne-%E9%83%A8%E7%BD%B2) [国内镜像](https://gitee.com/sy/bark-worker-server/wikis/EdgeOne-%E9%83%A8%E7%BD%B2)
+上游 Wiki 仍描述旧的 Node Functions 反代，不要按那份步骤为本 fork 配置 `PROXY_TOKEN` 或强制 `URL_PREFIX`：[EdgeOne 部署](https://github.com/sylingd/bark-worker-server/wiki/EdgeOne-%E9%83%A8%E7%BD%B2)。
 
 ### Cloudflare Worker
 
@@ -39,7 +39,9 @@ Bark Worker Server 是一个 [Bark-Server](https://github.com/Finb/bark-server) 
 * `BASIC_AUTH` 是否启用 HTTP Basic Auth，默认不启用
 * `URL_PREFIX` 部署路径，默认为 `/`
   * 例如：当你填写部署路径为 `/bark` 时，在 Bark App 中填写的服务器地址为 `https://你的域名/bark`，注意开头必须要有“/”，末尾不要有“/”
-* `APNS_URL` 自定义 APNs 服务地址
+  * EdgeOne 上它仍然决定 API 前缀和边缘函数目录。它不再是 Node 反代的必填项，不设置时函数位于站点根路径
+* `APNS_URL` 自定义 APNs 主机名（不是带 `https://` 的完整 URL）。EdgeOne 上也会带 `version: "HTTP/2.0"` 直接请求，不再表示跳过反代
+* `APNS_TRANSPORT_PROBE` 仅 EdgeOne 使用。设为 `true` 后，对诊断路径发 POST 才会做一次不携带 provider token、使用固定无效 device token 的连通性探测。默认关闭。Cloudflare、ESA 和 Node 会忽略它
 
 ## 其他
 

@@ -8,7 +8,8 @@ export type BasicEnv = Partial<{
   BASIC_AUTH: string;
   URL_PREFIX: string;
   APNS_URL: string;
-  PROXY_TOKEN: string;
+  /** Opt-in EdgeOne transport probe. Only the exact value "true" enables it. */
+  APNS_TRANSPORT_PROBE: string;
 }>;
 
 export type NullLike = null | undefined;
@@ -25,17 +26,6 @@ export interface DBAdapter {
 export interface APNsResponse {
   status: number;
   message: string;
-}
-
-export interface APNsProxyResponse extends APNsResponse {
-  id: string;
-}
-
-export interface APNsProxyItem {
-  id: string;
-  deviceToken: string;
-  headers: Record<string, string>;
-  aps: any;
 }
 
 export interface Options {

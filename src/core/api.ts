@@ -270,16 +270,16 @@ export class API {
         return buildSuccess(undefined);
       }
       if (
-        response.status === 410 ||
-        (response.status === 400 && response.message.includes('BadDeviceToken'))
+        resp.status === 410 ||
+        (resp.status === 400 && resp.message.includes('BadDeviceToken'))
       ) {
         await this.db.deleteDeviceByKey(deviceKey);
       }
 
       if (
         retryCount === 0 &&
-        response.status === 403 &&
-        response.message.includes('ExpiredProviderToken')
+        resp.status === 403 &&
+        resp.message.includes('ExpiredProviderToken')
       ) {
         // Token expired, try again
         await regenerateAuthToken(this.db);
@@ -289,7 +289,7 @@ export class API {
         );
       }
 
-      throw new APIError(response.status, `push failed: ${response.message}`);
+      throw new APIError(resp.status, `push failed: ${resp.message}`);
     };
 
     const response = await push(this.options, deviceToken, headers, aps, ctx);
