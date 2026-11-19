@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type RsbuildConfig } from '@rsbuild/core';
 import fs from 'fs-extra';
-import { nanoid } from 'nanoid';
+import { edgeFunctionRelativePath } from './src/entry/edgeone-layout';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,85 +79,22 @@ if (process.env.ENTRY === 'esa') {
 }
 
 if (process.env.ENTRY === 'edgeone') {
-  let proxyToken = process.env.PROXY_TOKEN;
-  if (!proxyToken) {
-    proxyToken = nanoid();
-    console.log(`Generate PROXY_TOKEN: ${proxyToken}`);
-  } else {
-    console.log(`Use PROXY_TOKEN: ${proxyToken}`);
-  }
-  defines['process.env.PROXY_TOKEN'] = JSON.stringify(proxyToken);
-
-  if (!process.env.URL_PREFIX || process.env.URL_PREFIX === '/') {
-    throw new Error('Please set URL_PREFIX');
-  }
-
-  config.environments = {
-    'node-proxy': {
-      output: {
-        target: 'node',
-      },
-      tools: {
-        rspack: {
-          target: 'node',
-        },
-      },
-      source: {
-        entry: {
-          'apns-proxy': {
-            import: `./src/entry/edgeone-apns-proxy.ts`,
-            html: false,
-          },
-        },
-      },
-    },
-  };
+  const edgeFunctionPath = edgeFunctionRelativePath(process.env.URL_PREFIX);
 
   config.plugins = [
     {
-      name: 'after',
+      name: 'edgeone-move-handler',
       setup(api) {
         api.onAfterBuild(async () => {
-          if (process.env.ENTRY === 'edgeone') {
-            if (!process.env.URL_PREFIX || process.env.URL_PREFIX === '/') {
-              throw new Error('Please set URL_PREFIX');
-            }
-            const cwd = process.cwd();
-            const dist = path.join(__dirname, 'dist');
-            const functions = path.join(
-              cwd,
-              'edge-functions',
-              process.env.URL_PREFIX,
-            );
-            const nodeFunctions = path.join(
-              cwd,
-              'node-functions',
-              'bark-node',
-              process.env.URL_PREFIX,
-            );
-            await fs.ensureDir(functions);
-            await fs.ensureDir(nodeFunctions);
-            const target = path.join(functions, '[[default]].js');
-            if (await fs.pathExists(target)) {
-              await fs.remove(target);
-            }
-            console.log(`Move handler.js to ${target}`);
-            await fs.move(path.join(dist, 'handler.js'), target);
-
-            const nodeTarget = path.join(nodeFunctions, 'apns-proxy.js');
-            console.log(`Move apns-proxy.js to ${nodeTarget}`);
-            const nodeTargetContent = await fs.readFile(
-              path.join(dist, 'apns-proxy.js'),
-              'utf-8',
-            );
-            await fs.writeFile(
-              nodeTarget,
-              nodeTargetContent.replace(
-                /export[\s]*{(.*?) as handleRequest[\s]*}/,
-                'export const onRequest=$1',
-              ),
-            );
+          const cwd = process.cwd();
+          const dist = path.join(__dirname, 'dist');
+          const target = path.join(cwd, edgeFunctionPath);
+          await fs.ensureDir(path.dirname(target));
+          if (await fs.pathExists(target)) {
+            await fs.remove(target);
           }
+          console.log(`Move handler.js to ${target}`);
+          await fs.move(path.join(dist, 'handler.js'), target);
         });
       },
     },
